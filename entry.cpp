@@ -5,7 +5,9 @@
 //  Created by hidayat on 10/14/15.
 //  Copyright © 2015 hidayat. All rights reserved.
 //
-
+#include <string>
+#include <sstream>
+#include <vector>
 #include <stdio.h>
 #include "entry.h"
 #include "avputil.h"
@@ -22,7 +24,7 @@ void getUnable2Comply(diameter d,avp* &allavp,int &l,int &total){
     
     //read avp
     avp ori_host=d.getAVP(264, 0);
-    printf("ori len %i \n",ori_host.len);
+    //printf("ori len %i \n",ori_host.len);
     if(ori_host.len>0){
         std::cout<<util.decodeAsString(ori_host)<<std::endl;
     }
@@ -55,28 +57,57 @@ void getUnable2Comply(diameter d,avp* &allavp,int &l,int &total){
     allavp[1]=sid;
     allavp[2]=sid1;
 }
+std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
+    std::stringstream ss(s);
+    std::string item;
+    while (std::getline(ss, item, delim)) {
+        elems.push_back(item);
+    }
+    return elems;
+}
+
+
+std::vector<std::string> split(const std::string &s, char delim) {
+    std::vector<std::string> elems;
+    split(s, delim, elems);
+    return elems;
+}
 void entry::getRAR(char* msid,avp* &allavp,int &l,int &total){
     avputil util=avputil();
+    //get sessionid of the msid
+    char* sesinfo="_sess";
+    char sessinfo[strlen(msid)+strlen(sesinfo)];
+    strcpy(sessinfo,msid); // copy string one into the result.
+    strcat(sessinfo,sesinfo); // append string two to the result.
+    std::string valses;
+    rocksdb::Status status = entry::db->Get(rocksdb::ReadOptions(),sessinfo, &valses);
+    std::cout<<sessinfo<<" == "<<valses<<"=="<<std::endl;
     
     char f=0x40;
-    std::string ori ="vmclient.myrealm.example";
-    //printf("size : %i\n",ori.size());
-    avp o=util.encodeString(264,0,f,ori);
+    avp sessid=util.encodeString(263, 0, f, valses);
+    avp o=util.encodeString(264,0,f,ORIGIN_HOST);
+    avp realm=util.encodeString(296,0,f,ORIGIN_REALM);
+    avp authappid=util.encodeInt32(258, 0, f, 16777238);
+    std::string peer=split(valses, ';')[0];
+    avp dh=util.encodeString(293, 0, f, peer);
+    avp rartype=util.encodeInt32(285, 0, f, 0);
+    avp drealm=util.encodeString(283,0,f,"xlggsn.id");
     //read rar_info
     char* info="_rarinfo";
     char rarinfo[strlen(msid)+strlen(info)];
     strcpy(rarinfo,msid); // copy string one into the result.
     strcat(rarinfo,info); // append string two to the result.
     std::string val;
-    rocksdb::Status status = entry::db->Get(rocksdb::ReadOptions(),rarinfo, &val);
+    status = entry::db->Get(rocksdb::ReadOptions(),rarinfo, &val);
     std::cout<<rarinfo<<" == "<<val<<std::endl;
     Document dom;
     dom.Parse(val.c_str());
     
     avp cr_install=avp(0, 0);
     avp cr_remove=avp(0, 0);
-    l=1;
-    total=o.len;
+    l=7;
+    int i=l;
+    total=o.len+sessid.len+realm.len+authappid.len+dh.len+rartype.len+drealm.len;
     const Value& a = dom["addacg"];
     assert(a.IsArray());
     //printf("cek addacg\n");
@@ -84,7 +115,7 @@ void entry::getRAR(char* msid,avp* &allavp,int &l,int &total){
         avp* acg=new avp[a.Size()];
         for (SizeType i = 0; i < a.Size(); i++){ // Uses SizeType instead of size_t
             
-            avp temp=util.encodeString(1005, 10415, 0xC0, a[i].GetString());
+            avp temp=util.encodeString(1004, 10415, 0xC0, a[i].GetString());
             temp.dump();
             //printf("\n");
             *acg=temp;
@@ -103,7 +134,7 @@ void entry::getRAR(char* msid,avp* &allavp,int &l,int &total){
         avp* delacg=new avp[del.Size()];
         for (SizeType i = 0; i < del.Size(); i++){ // Uses SizeType instead of size_t
             
-            avp temp=util.encodeString(1005, 10415, 0xC0, del[i].GetString());
+            avp temp=util.encodeString(1004, 10415, 0xC0, del[i].GetString());
             temp.dump();
             //printf("\n");
             *delacg=temp;
@@ -117,8 +148,13 @@ void entry::getRAR(char* msid,avp* &allavp,int &l,int &total){
     //reset rar_info
     status = db->Put(rocksdb::WriteOptions(), rarinfo, "{\"delacg\":[],\"addacg\":[]}");
     allavp=new avp[l];
-    allavp[0]=o;
-    int i=1;
+    allavp[0]=sessid;
+    allavp[1]=o;
+    allavp[2]=realm;
+    allavp[3]=authappid;
+    allavp[4]=dh;
+    allavp[5]=rartype;
+    allavp[6]=drealm;
     if(cr_install.len>0){
         allavp[i]=cr_install;
         i++;
@@ -144,7 +180,7 @@ void getCEA(diameter d,avp* &allavp,int &l,int &total,std::string &host){
     
     //read avp
     avp ori_host=d.getAVP(264, 0);
-    printf("ori len %i \n",ori_host.len);
+    //printf("ori len %i \n",ori_host.len);
     if(ori_host.len>0){
         //std::cout<<util.decodeAsString(ori_host)<<std::endl;
         host=util.decodeAsString(ori_host);
@@ -243,7 +279,7 @@ diameter entry::process(diameter d){
     if(reqbit==0){
         return diameter(0, 0, 0);
     }
-    printf("reqbit : %i\n",reqbit);
+    //printf("reqbit : %i\n",reqbit);
     int ccode=((*(d.ccode) & 0xff) << 16)| ((*(d.ccode+1) & 0xff) << 8) | ((*(d.ccode+2)& 0xff));
    int i=0;
     logic lojik=logic();
@@ -334,6 +370,6 @@ void entry::connectCallback(CallbackInterface *cb)
 // Test the callback to make sure it works.
 void entry::test(std::string host)
 {
-    printf("Caller::test() calling callback...\n");
+    //printf("Caller::test() calling callback...\n");
     entry::m_cb -> cbiCallbackFunction(host);
 }

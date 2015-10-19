@@ -33,7 +33,7 @@ public:
     // The callback function that Caller will call.
     void cbiCallbackFunction(std::string host)
     {
-        printf("  Callee::cbiCallbackFunction() inside callback\n");
+        //printf("  Callee::cbiCallbackFunction() inside callback\n");
         //std::cout<<host<<","<<socket<<std::endl;
         
         rocksdb::Status status = db->Put(rocksdb::WriteOptions(), host, std::to_string(socket));
