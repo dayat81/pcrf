@@ -97,7 +97,8 @@ avp diameter::copyAVP(int acode, int vcode){
             if(padding!=0){
                 padding=4-padding;
             }
-            a=avp(b,lavpval+padding+l);   //point to avp head
+            avp temp=avp(b,lavpval+padding+l);   //point to avp head
+            a=avp(temp.copy(),temp.len);
             found=true;
             curr=curr-l;
         }else{
@@ -126,7 +127,7 @@ avp diameter::getAVP(int acode, int vcode){
     int padding;
     int vendorcode;
     while (curr<len&&!found) {
-	vendorcode=0;
+        vendorcode=0;
         avpcode=(((*b& 0xff) << 24) | ((*(b+1) & 0xff) << 16)| ((*(b+2) & 0xff) << 8) | ((*(b+3)& 0xff)));
         curr=curr+4;
         b=b+4;
@@ -143,7 +144,6 @@ avp diameter::getAVP(int acode, int vcode){
             b=b+4;
             lavpval=lavpval-4;  //actual avp value length
         }
-	//printf("%i code %i %i\n",vendorbit,avpcode,vendorcode);
         if(acode==avpcode&&vcode==vendorcode){
             a=avp(b,lavpval);   //point to avp val
             found=true;

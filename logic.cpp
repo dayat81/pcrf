@@ -80,13 +80,13 @@ void logic::getCCA(diameter d,avp* &allavp,int &l,int &total){
         std::string msidstring="";
         while(!exit){
             avp msid=d.getAVP(443, 0);
-            printf("msid len %i \n",msid.len);
+            //printf("msid len %i \n",msid.len);
             if(msid.len>0){
                 avp msidtype=util.getAVP(450, 0, msid);
-                printf("msidtype len %i \n",msidtype.len);
+                //printf("msidtype len %i \n",msidtype.len);
                 if(msidtype.len>0){
                     int type=util.decodeAsInt(msidtype);
-                    printf("decoded : %i\n",type);
+                    //printf("decoded : %i\n",type);
                     if(type==0){
                         exit=true;
                         avp msiddata=util.getAVP(444, 0, msid);
@@ -97,7 +97,7 @@ void logic::getCCA(diameter d,avp* &allavp,int &l,int &total){
                 exit=true;
             }
         }
-        std::cout<<"msid:"<<msidstring<<std::endl;
+        std::cout<<msidstring<<std::endl;
         std::string msidsesinfo=msidstring;
         std::string msidrarinfo=msidstring;
         //store sessid,msid

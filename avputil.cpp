@@ -5,10 +5,9 @@
 //  Created by hidayat on 10/14/15.
 //  Copyright © 2015 hidayat. All rights reserved.
 //
-
+#include <cstring>
 #include <stdio.h>
 #include "avputil.h"
-#include <cstring>
 
 avputil::avputil(){
     //helper class
@@ -90,13 +89,14 @@ avp avputil::getAVP(int acode, int vcode, avp a){
     return r;
 }
 
-char* return_buffer(const std::string& string)
-{
-    char* return_string = new char[string.length() + 1];
-    strcpy(return_string, string.c_str());
-    
-    return return_string;
-}
+//char* return_buffer(const std::string& string)
+//{
+//    char* return_string = new char[string.length() + 1];
+//    
+//    strcpy(return_string, string.c_str());
+//    
+//    return return_string;
+//}
 
 avp avputil::encodeString(int acode, int vcode, char flags, std::string value){
     int padding=value.length()%4;
@@ -109,7 +109,10 @@ avp avputil::encodeString(int acode, int vcode, char flags, std::string value){
     }
     //char res[l];
     char* resp=new char[l+padding];//res;
-    char* buffer = return_buffer(value);
+    char* buffer = new char[value.length() + 1];
+    
+    strcpy(buffer, value.c_str());
+    //char* buffer = return_buffer(value);
     
     
     char *ptr = (char*)&acode;
@@ -160,6 +163,8 @@ avp avputil::encodeString(int acode, int vcode, char flags, std::string value){
         buffer++;
         i++;
     }
+    buffer=buffer-value.length();
+    delete buffer;
     i=0;
     while (i<padding) {
         *resp=0x00;
@@ -202,8 +207,8 @@ avp avputil::encodeIP(int acode, int vcode, char flags, unsigned int value[]){
     //	 for(int i=0;i<4;++i, ++ptr)
     //	    msg[3-i] = *ptr;
     //resp=resp-4;
-    
-    char *ptr1 = (char*)&l;
+    int al=l-2;
+    char *ptr1 = (char*)&al;
     ptr1=ptr1+2;
     i=0;
     while(i<3){
@@ -234,7 +239,7 @@ avp avputil::encodeIP(int acode, int vcode, char flags, unsigned int value[]){
     }
     *resp=0x00;
     resp++;
-    *resp=0x01;
+    *resp=0x00;
     resp++;
     resp=resp-l;
     //	 char *msg1 = new char[4];

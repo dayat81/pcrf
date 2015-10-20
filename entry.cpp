@@ -5,9 +5,7 @@
 //  Created by hidayat on 10/14/15.
 //  Copyright © 2015 hidayat. All rights reserved.
 //
-#include <string>
-#include <sstream>
-#include <vector>
+
 #include <stdio.h>
 #include "entry.h"
 #include "avputil.h"
@@ -16,6 +14,10 @@
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
+#include <string>
+#include <sstream>
+#include <vector>
+
 using namespace rapidjson;
 entry::entry(){
 }
@@ -87,11 +89,11 @@ void entry::getRAR(char* msid,avp* &allavp,int &l,int &total){
     avp sessid=util.encodeString(263, 0, f, valses);
     avp o=util.encodeString(264,0,f,ORIGIN_HOST);
     avp realm=util.encodeString(296,0,f,ORIGIN_REALM);
+    avp drealm=util.encodeString(283, 0, f, "xlggsn.id");
     avp authappid=util.encodeInt32(258, 0, f, 16777238);
     std::string peer=split(valses, ';')[0];
     avp dh=util.encodeString(293, 0, f, peer);
     avp rartype=util.encodeInt32(285, 0, f, 0);
-    avp drealm=util.encodeString(283,0,f,"xlggsn.id");
     //read rar_info
     char* info="_rarinfo";
     char rarinfo[strlen(msid)+strlen(info)];
@@ -170,6 +172,7 @@ void getDWA(avp* &allavp,int &l,int &total){
     avp realm=util.encodeString(296,0,f,ORIGIN_REALM);
     avp rc=util.encodeInt32(268, 0, f, 2001);
     total=o.len+realm.len+rc.len;
+    l=3;
     allavp=new avp[l];
     allavp[0]=o;
     allavp[1]=realm;
@@ -267,7 +270,11 @@ diameter entry::createRAR(char* msid){
             b++;
             temp++;
         }
+	//if(allavp[i].len>0){
+        delete allavp[i].val;
+//}
     }
+    delete allavp;
     b=b-l_resp+4;
     diameter answer=diameter(h,b,l_resp-4);
     //answer.dump();
@@ -353,7 +360,11 @@ diameter entry::process(diameter d){
             b++;
             temp++;
         }
+	//if(allavp[i].len>0){
+        delete allavp[i].val;
+//}
     }
+    delete allavp;
     b=b-l_resp+4;
 
     diameter answer=diameter(h, b, l_resp-4);
