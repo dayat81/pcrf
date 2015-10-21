@@ -21,7 +21,7 @@
 #include "rapidjson/stringbuffer.h"
 #include "entry.h"
 
-#define PORT    "3868" /* Port to listen on */
+
 #define BACKLOG     10  /* Passed to listen() */
 using namespace rapidjson;
 //this class maintain socket list
@@ -49,7 +49,7 @@ rocksdb::Options options;
 int main(void)
 {
     options.create_if_missing = true;
-    rocksdb::Status status = rocksdb::DB::Open(options, "./testdb", &db);
+    rocksdb::Status status = rocksdb::DB::Open(options, DB_PATH, &db);
     assert(status.ok());
     
     int sock,sock1;
@@ -61,7 +61,7 @@ int main(void)
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
-    if (getaddrinfo("10.195.84.157", PORT, &hints, &res) != 0) {
+    if (getaddrinfo(HOST_IP, PORT, &hints, &res) != 0) {
         perror("getaddrinfo");
         return 1;
     }
@@ -70,7 +70,7 @@ int main(void)
     memset(&hints1, 0, sizeof hints1);
     hints1.ai_family = AF_INET;
     hints1.ai_socktype = SOCK_STREAM;
-    if (getaddrinfo("10.195.84.157", "1234", &hints1, &res1) != 0) {
+    if (getaddrinfo(HOST_IP, CMDPORT, &hints1, &res1) != 0) {
         perror("getaddrinfo");
         return 1;
     }
@@ -178,6 +178,7 @@ void *handlecmd(void *socket){
             exit(EXIT_FAILURE);
         }
     }
+    pthread_exit(NULL);
     return 0;
 }
 
@@ -229,7 +230,7 @@ void *handlecommand(void *sock){
             char result[1024];
             bzero(result, 1024);
             for (it->SeekToFirst(); it->Valid(); it->Next()) {
-//                std::cout << it->key().ToString() << ": " << it->value().ToString() << std::endl;
+                //std::cout << it->key().ToString() << ": " << it->value().ToString() << std::endl;
                 char* key = to_char(it->key().ToString());
                 char* val = to_char(it->value().ToString());
                 strcat(result, key);
@@ -281,7 +282,13 @@ void *handlecommand(void *sock){
             char rarinfo[strlen(params[2])+strlen(info)];
             strcpy(rarinfo,params[2]); // copy string one into the result.
             strcat(rarinfo,info); // append string two to the result.
-            rocksdb::Status status = db->Put(rocksdb::WriteOptions(),params[2], "{\"acg\":[]}");
+            //cek if default exist the copy to msid
+            std::string valdef;
+            rocksdb::Status status = db->Get(rocksdb::ReadOptions(),"default", &valdef);
+            if(valdef==""){
+                valdef="{\"acg\":[]}";
+            }
+            status = db->Put(rocksdb::WriteOptions(),params[2], valdef);
             status = db->Put(rocksdb::WriteOptions(),rarinfo, "{\"addacg\":[],\"delacg\":[]}");
             std::cout<<val<<std::endl;
             char* value = to_char(val);
@@ -443,6 +450,7 @@ void *handlecommand(void *sock){
     {
         //socket error occurred
     }
+    pthread_exit(NULL);
     return 0;
 }
 
@@ -484,6 +492,7 @@ void *handle(void *sock){
         }
     }
     delete h;
+    pthread_exit(NULL);
   if(n == 0)
   {
       //socket was gracefully closed
@@ -492,6 +501,5 @@ void *handle(void *sock){
   {
       //socket error occurred
   }
-pthread_exit(NULL);
     return 0;
 }

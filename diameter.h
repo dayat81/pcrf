@@ -1,5 +1,5 @@
 //
-//  diameter.h
+//  diameter.h test
 //  diameter
 //
 //  Created by hidayat on 10/14/15.
@@ -12,7 +12,12 @@
 #include "avp.h"
 //#include <functional>
 #include <string>
-
+#define ORIGIN_HOST    "redir.sapctest.lte.xl.co.id"
+#define ORIGIN_REALM   "xltest.id"
+#define HOST_IP "10.195.84.157"
+#define DB_PATH "./testdb"
+#define PORT    "3868" /* Port to listen on */
+#define CMDPORT    "1234" /* Port to listen on */
 class diameter{
 
 public:

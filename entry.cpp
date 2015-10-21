@@ -89,9 +89,14 @@ void entry::getRAR(char* msid,avp* &allavp,int &l,int &total){
     avp sessid=util.encodeString(263, 0, f, valses);
     avp o=util.encodeString(264,0,f,ORIGIN_HOST);
     avp realm=util.encodeString(296,0,f,ORIGIN_REALM);
-    avp drealm=util.encodeString(283, 0, f, "xlggsn.id");
-    avp authappid=util.encodeInt32(258, 0, f, 16777238);
+    //read destination realm
     std::string peer=split(valses, ';')[0];
+    std::string peer_realm=peer;
+    std::string valrealm;
+    status = entry::db->Get(rocksdb::ReadOptions(),peer_realm.append("_realm"), &valrealm);
+    avp drealm=util.encodeString(283, 0, f, valrealm);
+    avp authappid=util.encodeInt32(258, 0, f, 16777238);
+    
     avp dh=util.encodeString(293, 0, f, peer);
     avp rartype=util.encodeInt32(285, 0, f, 0);
     //read rar_info
@@ -178,7 +183,7 @@ void getDWA(avp* &allavp,int &l,int &total){
     allavp[1]=realm;
     allavp[2]=rc;
 }
-void getCEA(diameter d,avp* &allavp,int &l,int &total,std::string &host){
+void entry::getCEA(diameter d,avp* &allavp,int &l,int &total,std::string &host){
     avputil util=avputil();
     
     //read avp
@@ -188,13 +193,28 @@ void getCEA(diameter d,avp* &allavp,int &l,int &total,std::string &host){
         //std::cout<<util.decodeAsString(ori_host)<<std::endl;
         host=util.decodeAsString(ori_host);
     }
+    avp ori_realm=d.getAVP(296, 0);
+    std::string orealm="";
+    if(ori_realm.len>0){
+        orealm=util.decodeAsString(ori_realm);
+    }
+    std::string peer_realm=host;
+    rocksdb::Status status = entry::db->Put(rocksdb::WriteOptions(), peer_realm.append("_realm"), orealm);
     
     char f=0x40;
     avp o=util.encodeString(264,0,f,ORIGIN_HOST);
     avp realm=util.encodeString(296,0,f,ORIGIN_REALM);
     avp vid=util.encodeInt32(266, 0, f, 0);
     avp pn=util.encodeString(269, 0, f, "simple PCRF");
-    unsigned int ipval[4]={10,195,84,157};
+    std::vector<std::string> ips=split(HOST_IP, '.');
+    std::string::size_type sz;   // alias of size_t
+    unsigned int aa = std::stoi (ips[0],&sz);
+    unsigned int bb = std::stoi (ips[1],&sz);
+    unsigned int cc = std::stoi (ips[2],&sz);
+    unsigned int dd = std::stoi (ips[3],&sz);
+    //printf("ip %i\n",i_dec);
+    //unsigned int ipval[4]={10,195,84,157};
+    unsigned int ipval[4]={aa,bb,cc,dd};
     avp ip=util.encodeIP(257, 0, f, ipval);
     avp authappid=util.encodeInt32(258, 0, f, 16777238);
     avp svid=util.encodeInt32(265, 0, f, 10415);
@@ -270,9 +290,7 @@ diameter entry::createRAR(char* msid){
             b++;
             temp++;
         }
-	//if(allavp[i].len>0){
         delete allavp[i].val;
-//}
     }
     delete allavp;
     b=b-l_resp+4;
@@ -360,9 +378,7 @@ diameter entry::process(diameter d){
             b++;
             temp++;
         }
-	//if(allavp[i].len>0){
         delete allavp[i].val;
-//}
     }
     delete allavp;
     b=b-l_resp+4;
