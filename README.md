@@ -8,4 +8,5 @@ feature:<br>
 
 currently only controlling access control group<br>
 
-next: adding monitoring-key support
+next: adding monitoring-key support<br>
+https://github.com/dayat81/pcrf/wiki
