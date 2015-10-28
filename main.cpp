@@ -119,12 +119,6 @@ int main(void)
         return 1;
     }
 
-    /* Listen */
-    if (listen(sock1, BACKLOG) == -1) {
-        perror("listen1");
-        return 1;
-    }
-    
     freeaddrinfo(res);
     freeaddrinfo(res1);
     pthread_t thread;
@@ -160,10 +154,18 @@ int main(void)
 }
 
 void *handlecmd(void *socket){
+    //    struct sockaddr cli_addr;
+     //   socklen_t clilen;
+        int sock = *(int*)socket;
+    /* Listen */
+    if (listen(sock, BACKLOG) == -1) {
+        perror("listen1");
+        return 0;
+    }
     while(1){
         struct sockaddr cli_addr;
         socklen_t clilen;
-        int sock = *(int*)socket;
+//        int sock = *(int*)socket;
         int newsock = accept(sock, &cli_addr, &clilen);
         if (newsock == -1) {
             perror("accept");
@@ -224,24 +226,7 @@ void *handlecommand(void *sock){
             chars_array = strtok(NULL, "#:");
         }
         //printf("%s\n",cClientMessage);
-        if( memcmp( params[0], "show", strlen( "show") ) == 0 &&memcmp( params[1], "all", strlen( "all") ) == 0 ) {
-            //printf("dump peer here\n");
-            rocksdb::Iterator* it = db->NewIterator(rocksdb::ReadOptions());
-            char result[1024];
-            bzero(result, 1024);
-            for (it->SeekToFirst(); it->Valid(); it->Next()) {
-                //std::cout << it->key().ToString() << ": " << it->value().ToString() << std::endl;
-                char* key = to_char(it->key().ToString());
-                char* val = to_char(it->value().ToString());
-                strcat(result, key);
-                strcat(result, ":");
-                strcat(result, val);
-                strcat(result, "\n");
-            }
-            assert(it->status().ok());
-            strcat(result, "pcrf>");
-            int res=write(newsock, result, strlen(result));
-        }else if(memcmp( params[0], "quit", strlen( "quit") ) == 0){
+        if(memcmp( params[0], "quit", strlen( "quit") ) == 0){
             close(newsock);
         
         }else if (memcmp( params[0], "rar", strlen( "rar") ) == 0){
